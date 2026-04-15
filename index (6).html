@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PMA — Paid Media Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080809;
+  --bg2: #0f0f11;
+  --bg3: #161618;
+  --bg4: #1e1e21;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --border3: rgba(255,255,255,0.2);
+  --text: #efefef;
+  --text2: #888;
+  --text3: #444;
+  --accent: #b8ff57;
+  --accent2: #9de040;
+  --accent-dim: rgba(184,255,87,0.08);
+  --accent-dim2: rgba(184,255,87,0.15);
+  --red: #ff5f5f;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Syne', sans-serif;
+  --r: 6px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; }
+
+#login-screen {
+  position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: var(--bg); z-index: 1000;
+}
+.login-bg {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 800px 500px at 30% 60%, rgba(184,255,87,0.03) 0%, transparent 70%),
+              radial-gradient(ellipse 500px 300px at 70% 20%, rgba(184,255,87,0.02) 0%, transparent 70%);
+}
+.login-grid {
+  position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 60% 60% at 50% 50%, black, transparent);
+}
+.login-card {
+  position: relative; width: 380px; background: var(--bg2);
+  border: 0.5px solid var(--border2); padding: 52px 44px 44px;
+  animation: fadeUp 0.4s ease-out; border-radius: var(--r);
+}
+.login-card::before {
+  content: ''; position: absolute; top: 0; left: 20%; right: 20%; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  border-radius: var(--r);
+}
+.login-eyebrow {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.25em;
+  color: var(--accent); text-transform: uppercase; margin-bottom: 28px;
+  display: flex; align-items: center; gap: 8px;
+}
+.login-eyebrow::before { content: ''; width: 20px; height: 1px; background: var(--accent); opacity: 0.5; }
+.login-h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 6px; }
+.login-sub { font-family: var(--mono); font-size: 11px; color: var(--text3); margin-bottom: 40px; }
+.field-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.15em; color: var(--text3); text-transform: uppercase; margin-bottom: 8px; display: block; }
+.field-input {
+  width: 100%; background: var(--bg3); border: 0.5px solid var(--border);
+  color: var(--text); font-family: var(--mono); font-size: 14px; padding: 13px 16px;
+  outline: none; transition: border-color 0.2s, background 0.2s; border-radius: var(--r); margin-bottom: 20px;
+}
+.field-input:focus { border-color: var(--accent); background: var(--bg4); }
+.login-btn {
+  width: 100%; background: var(--accent); color: #080809; border: none;
+  font-family: var(--sans); font-size: 13px; font-weight: 600; padding: 14px;
+  cursor: pointer; border-radius: var(--r); transition: background 0.15s, transform 0.1s;
+}
+.login-btn:hover { background: var(--accent2); }
+.login-btn:active { transform: scale(0.99); }
+.login-error { font-family: var(--mono); font-size: 11px; color: var(--red); text-align: center; margin-top: 12px; opacity: 0; transition: opacity 0.2s; height: 16px; }
+.login-error.show { opacity: 1; }
+
+#app { display: none; height: 100vh; flex-direction: column; }
+
+.topbar {
+  height: 48px; border-bottom: 0.5px solid var(--border);
+  display: flex; align-items: center; padding: 0 20px; gap: 0; flex-shrink: 0; background: var(--bg);
+}
+.topbar-logo { font-family: var(--mono); font-size: 12px; letter-spacing: 0.15em; color: var(--accent); font-weight: 500; margin-right: 20px; }
+.topbar-sep { width: 0.5px; height: 18px; background: var(--border2); margin-right: 16px; }
+.tabs { display: flex; gap: 2px; flex: 1; overflow-x: auto; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  font-family: var(--mono); font-size: 11px; padding: 6px 14px; border: 0.5px solid transparent;
+  background: transparent; color: var(--text3); cursor: pointer; transition: all 0.15s;
+  letter-spacing: 0.05em; white-space: nowrap; border-radius: var(--r);
+  display: flex; align-items: center; gap: 6px;
+}
+.tab:hover { color: var(--text2); background: var(--bg3); }
+.tab.active { color: var(--accent); border-color: rgba(184,255,87,0.2); background: var(--accent-dim); }
+.tab-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
+.tab.active .tab-dot { opacity: 1; }
+.topbar-actions { display: flex; gap: 6px; margin-left: 12px; flex-shrink: 0; }
+.topbar-btn {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; padding: 5px 12px;
+  border: 0.5px solid var(--border); background: transparent; color: var(--text3);
+  cursor: pointer; border-radius: var(--r); transition: all 0.15s; white-space: nowrap;
+}
+.topbar-btn:hover { border-color: var(--border2); color: var(--text2); }
+.topbar-btn.danger:hover { border-color: rgba(255,95,95,0.3); color: var(--red); }
+
+.app-body { display: flex; flex: 1; overflow: hidden; }
+
+.sidebar { width: 200px; border-right: 0.5px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+.sidebar-section { padding: 16px 0 8px; }
+.sidebar-heading { font-family: var(--mono); font-size: 9px; letter-spacing: 0.2em; color: var(--text3); text-transform: uppercase; padding: 0 16px; margin-bottom: 6px; }
+.shortcut { font-size: 12px; color: var(--text2); padding: 7px 16px; cursor: pointer; border-left: 2px solid transparent; transition: all 0.12s; line-height: 1.35; }
+.shortcut:hover { color: var(--text); border-left-color: var(--border3); background: rgba(255,255,255,0.02); }
+.sidebar-div { height: 0.5px; background: var(--border); margin: 8px 16px; }
+.sidebar-bottom { margin-top: auto; padding: 12px 0; }
+.sidebar-action {
+  font-family: var(--mono); font-size: 10px; color: var(--text3); padding: 7px 16px;
+  cursor: pointer; transition: color 0.15s; display: flex; align-items: center; gap: 8px;
+  letter-spacing: 0.05em; background: none; border: none; width: 100%; text-align: left;
+}
+.sidebar-action:hover { color: var(--text2); }
+
+.chat-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.chat-header { padding: 14px 24px 12px; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.chat-client-name { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.chat-client-tag { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.05em; }
+.chat-actions { margin-left: auto; display: flex; gap: 6px; }
+.chat-action-btn { font-family: var(--mono); font-size: 10px; padding: 5px 10px; border: 0.5px solid var(--border); background: transparent; color: var(--text3); cursor: pointer; border-radius: var(--r); transition: all 0.15s; }
+.chat-action-btn:hover { border-color: var(--border2); color: var(--text2); }
+
+.messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; }
+.messages::-webkit-scrollbar { width: 3px; }
+.messages::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.msg { display: flex; flex-direction: column; gap: 5px; max-width: 82%; animation: fadeUp 0.18s ease-out; }
+.msg.user { align-self: flex-end; align-items: flex-end; }
+.msg.agent { align-self: flex-start; align-items: flex-start; }
+.msg-meta { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px; }
+.msg-bubble { padding: 13px 17px; border-radius: var(--r); line-height: 1.7; word-break: break-word; font-size: 13.5px; }
+.msg.user .msg-bubble { background: var(--accent-dim2); border: 0.5px solid rgba(184,255,87,0.18); color: var(--text); white-space: pre-wrap; }
+.msg.agent .msg-bubble { background: var(--bg2); border: 0.5px solid var(--border2); color: var(--text); position: relative; }
+.msg.agent .msg-bubble::after { content: ''; position: absolute; top: 0; left: 0; width: 30%; height: 0.5px; background: linear-gradient(90deg, var(--accent), transparent); opacity: 0.4; border-radius: var(--r) 0 0 0; }
+
+.msg-bubble h2 { font-family: var(--sans); font-weight: 600; font-size: 14px; color: var(--accent); margin: 14px 0 6px; letter-spacing: -0.01em; }
+.msg-bubble h3 { font-family: var(--sans); font-weight: 600; font-size: 13px; color: var(--text2); margin: 12px 0 4px; }
+.msg-bubble h2:first-child, .msg-bubble h3:first-child { margin-top: 0; }
+.msg-bubble p { margin: 5px 0; }
+.msg-bubble p:first-child { margin-top: 0; }
+.msg-bubble p:last-child { margin-bottom: 0; }
+.msg-bubble ul, .msg-bubble ol { padding-left: 18px; margin: 8px 0; }
+.msg-bubble li { margin: 4px 0; line-height: 1.6; }
+.msg-bubble strong { color: var(--text); font-weight: 600; }
+.msg-bubble hr { border: none; border-top: 0.5px solid var(--border2); margin: 12px 0; }
+.msg-bubble blockquote { border-left: 2px solid var(--accent); padding-left: 12px; margin: 8px 0; color: var(--text2); }
+.msg-bubble code { font-family: var(--mono); font-size: 12px; background: var(--bg4); border: 0.5px solid var(--border); padding: 2px 6px; border-radius: 3px; color: var(--accent); }
+.msg-bubble table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12.5px; }
+.msg-bubble th { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); padding: 7px 12px; border-bottom: 0.5px solid rgba(184,255,87,0.25); text-align: left; background: rgba(184,255,87,0.04); }
+.msg-bubble td { padding: 7px 12px; border-bottom: 0.5px solid var(--border); color: var(--text2); vertical-align: top; }
+.msg-bubble td:first-child { color: var(--text); font-weight: 500; }
+.msg-bubble tr:last-child td { border-bottom: none; }
+.msg-export { font-family: var(--mono); font-size: 10px; color: var(--text3); background: none; border: none; cursor: pointer; padding: 2px 0; transition: color 0.15s; letter-spacing: 0.05em; }
+.msg-export:hover { color: var(--accent); }
+
+.typing-wrap { align-self: flex-start; }
+.typing-bubble { background: var(--bg2); border: 0.5px solid var(--border2); border-radius: var(--r); padding: 14px 18px; display: flex; align-items: center; gap: 5px; }
+.td { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); opacity: 0.3; animation: tdpulse 1.4s ease-in-out infinite; }
+.td:nth-child(2) { animation-delay: 0.2s; }
+.td:nth-child(3) { animation-delay: 0.4s; }
+@keyframes tdpulse { 0%,60%,100% { opacity: 0.2; transform: scale(1); } 30% { opacity: 1; transform: scale(1.4); } }
+
+.input-bar { padding: 14px 24px 18px; border-top: 0.5px solid var(--border); display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0; }
+#chat-input { flex: 1; background: var(--bg2); border: 0.5px solid var(--border2); color: var(--text); font-family: var(--sans); font-size: 13.5px; padding: 12px 16px; outline: none; resize: none; min-height: 44px; max-height: 160px; line-height: 1.5; transition: border-color 0.2s; border-radius: var(--r); }
+#chat-input:focus { border-color: rgba(184,255,87,0.35); }
+#chat-input::placeholder { color: var(--text3); }
+.send-btn { width: 44px; height: 44px; background: var(--accent); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: var(--r); transition: background 0.15s, transform 0.1s; flex-shrink: 0; }
+.send-btn:hover { background: var(--accent2); }
+.send-btn:active { transform: scale(0.96); }
+.send-btn:disabled { opacity: 0.25; cursor: not-allowed; transform: none; }
+.send-btn svg { width: 16px; height: 16px; }
+
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 500; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+.modal-overlay.open { display: flex; }
+.modal { width: 500px; background: var(--bg2); border: 0.5px solid var(--border2); padding: 36px 32px 32px; position: relative; border-radius: var(--r); animation: fadeUp 0.2s ease-out; }
+.modal::before { content: ''; position: absolute; top: 0; left: 15%; right: 15%; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.5; border-radius: var(--r); }
+.modal-title { font-family: var(--mono); font-size: 11px; letter-spacing: 0.15em; color: var(--accent); text-transform: uppercase; margin-bottom: 20px; }
+.modal-input { width: 100%; background: var(--bg3); border: 0.5px solid var(--border); color: var(--text); font-family: var(--sans); font-size: 13px; padding: 10px 13px; outline: none; margin-bottom: 10px; transition: border-color 0.2s; border-radius: var(--r); }
+.modal-input:focus { border-color: var(--border2); }
+.modal-textarea { resize: vertical; min-height: 130px; line-height: 1.5; }
+.modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+.btn-ghost { font-family: var(--mono); font-size: 11px; padding: 9px 18px; background: transparent; border: 0.5px solid var(--border); color: var(--text3); cursor: pointer; border-radius: var(--r); transition: all 0.15s; }
+.btn-ghost:hover { border-color: var(--border2); color: var(--text2); }
+.btn-primary { font-family: var(--sans); font-size: 12px; font-weight: 600; padding: 9px 20px; background: var(--accent); border: none; color: #080809; cursor: pointer; border-radius: var(--r); transition: background 0.15s; }
+.btn-primary:hover { background: var(--accent2); }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 680px) { .sidebar { display: none; } .messages { padding: 16px; } .input-bar { padding: 12px 16px 16px; } }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-bg"></div>
+  <div class="login-grid"></div>
+  <div class="login-card">
+    <div class="login-eyebrow">Paid Media Agent</div>
+    <div class="login-h1">Acceso<br>al sistema</div>
+    <div class="login-sub">// v2.0 — uso interno</div>
+    <label class="field-label">Contraseña</label>
+    <input type="password" class="field-input" id="pw" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
+    <button class="login-btn" onclick="login()">Ingresar</button>
+    <div class="login-error" id="login-err">Contraseña incorrecta</div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">PMA//</div>
+    <div class="topbar-sep"></div>
+    <div class="tabs" id="tabs"></div>
+    <div class="topbar-actions">
+      <button class="topbar-btn" onclick="openModal()">+ Cliente</button>
+      <button class="topbar-btn danger" onclick="logout()">Salir</button>
+    </div>
+  </div>
+  <div class="app-body">
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-heading">Accesos rápidos</div>
+        <div id="shortcuts"></div>
+      </div>
+      <div class="sidebar-bottom">
+        <div class="sidebar-div"></div>
+        <button class="sidebar-action" onclick="exportAll()">↓ Exportar chat</button>
+        <button class="sidebar-action" onclick="clearChat()">↺ Limpiar chat</button>
+      </div>
+    </div>
+    <div class="chat-wrap">
+      <div class="chat-header">
+        <div>
+          <div class="chat-client-name" id="hdr-name"></div>
+          <div class="chat-client-tag" id="hdr-tag"></div>
+        </div>
+        <div class="chat-actions">
+          <button class="chat-action-btn" onclick="exportAll()">Exportar</button>
+          <button class="chat-action-btn" onclick="clearChat()">Limpiar</button>
+        </div>
+      </div>
+      <div class="messages" id="messages"></div>
+      <div class="input-bar">
+        <textarea id="chat-input" placeholder="Escribí tu consulta..." rows="1" onkeydown="handleKey(event)" oninput="resize(this)"></textarea>
+        <button class="send-btn" id="send-btn" onclick="send()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#080809" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title">// Nuevo cliente</div>
+    <input type="text" class="modal-input" id="m-name" placeholder="Nombre del cliente">
+    <input type="text" class="modal-input" id="m-desc" placeholder="Descripción corta">
+    <textarea class="modal-input modal-textarea" id="m-ctx" placeholder="Contexto completo: producto, público, canales, tono, objetivos..."></textarea>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn-primary" onclick="saveClient()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PW = 'pma2025';
+const SK = 'pma_v2';
+
+const BASE_SYS = `Sos un especialista senior en performance marketing y estrategia comercial. Experto en Meta Ads, Google Ads, copywriting de conversión y estrategia de negocio.
+
+FORMATO OBLIGATORIO:
+- Usá markdown: ## para secciones, **negrita** para términos clave
+- Para campañas: estructurá siempre con secciones (## Diagnóstico, ## Estrategia, ## Estructura, ## Copies, ## Optimización)
+- Para comparaciones: usá tablas markdown
+- Para copies: mostralos como bloques etiquetados claramente
+- Para pasos: listas numeradas
+- Respuestas directas, sin relleno
+- Si algo está mal, decilo. Pensás como si fuera tu plata
+- Sin emojis innecesarios
+
+El usuario es Francisco, 20 años, argentino, conoce Meta Ads y Google Ads. Tratalo como colega.`;
+
+const DC = [
+  { id:'rondo', name:'Rondó', desc:'Burger boxes premium — lanzamiento 14 mayo',
+    shortcuts:[['Campaña de lanzamiento 14 de mayo — pedidos por WhatsApp desde Instagram','Campaña lanzamiento'],['Copies para Instagram Reels. Público: pibes 18-30 zona norte Buenos Aires','Copies Reels'],['Segmentación Meta Ads: intereses, lookalikes y remarketing para Rondó','Segmentación'],['¿Google Ads en el lanzamiento o solo Meta? Dame tu criterio.','Meta vs Google'],['Estrategia B2B para clubes y terceros tiempos de rugby en zona norte','Canal B2B']],
+    ctx:`Cliente: Rondó\nProducto: boxes de hamburguesas premium para hacer en casa. Medallones Blend N°2 (Roast Beef 45% + Tapa Asado 40% + Grasa Peya 15%), pan brioche, cheddar Milkaut, panceta ahumada. Todo envasado al vacío.\nConcepto: experiencia para juntadas. La hamburguesería premium en tu casa, sin complicarte.\nCompetencia real: delivery, cocinar en casa, pedir pizza — no solo hamburgueserías.\nPúblico: jóvenes 18-30, grupos de amigos, organizadores de juntadas. San Isidro y zona norte, Buenos Aires.\nCombos: Box x6 / Box x12 hamburguesas dobles.\nCanal principal: Instagram → WhatsApp.\nTono: simple, directo, natural, argentino. NUNCA "experiencia premium", "calidad superior" ni frases genéricas.\nModelo: B2C venta directa + B2B con clubes/eventos (negociaciones con Club Atlético San Isidro).\nLanzamiento: 14 de mayo. Stock: ~300 hamburguesas/mes.`
+  },
+  { id:'vlan', name:'Vlan', desc:'Ray-Ban originales — foco B2B',
+    shortcuts:[['Estrategia Meta Ads para escalar B2B de Vlan. Target: concesionarias e inmobiliarias.','Campaña B2B'],['Copies para Instagram que posicionen Vlan como herramienta de cierre, no tienda de anteojos.','Copies B2B'],['¿Cómo genero leads B2B calificados (gerentes, dueños) desde Meta Ads?','Leads B2B'],['Estrategia para reactivar ventas B2C. ¿Meta Ads o contenido orgánico?','Reactivar B2C'],['Armá el pitch de Vlan para una concesionaria de autos.','Pitch concesionaria']],
+    ctx:`Cliente: Vlan\nNegocio: e-commerce de anteojos Ray-Ban originales en Argentina. Importación paralela — productos originales, precios muy competitivos.\nPrecios de compra: modelos base USD 41, nuevos USD 46, línea Ferrari USD 52.\nEstado: +150 anteojos vendidos, 0 quejas relevantes, operaciones B2B realizadas (ej: Pharmex).\nCanal B2C: Instagram → WhatsApp. Consumo minorista cayendo.\nFoco estratégico: escalar B2B — regalos corporativos, incentivos, activaciones, herramientas de cierre de ventas.\nTargets B2B: concesionarias, inmobiliarias, empresas de consumo masivo, marcas lifestyle.\nPosicionamiento correcto: NO es una tienda de anteojos. ES una herramienta de diferenciación comercial para empresas.\nPropuesta B2B clave: "Regalo premium de cierre" — concesionaria regala Ray-Ban al vender un auto, inmobiliaria al cerrar operación.\nEstrategia comercial: contactar decisores, vender impacto no producto, pruebas piloto, casos reales.`
+  },
+  { id:'general', name:'General', desc:'Consultas técnicas sin cliente específico',
+    shortcuts:[['¿Cuál es la mejor estructura de campaña Meta Ads para un negocio nuevo sin datos de píxel?','Meta Ads desde cero'],['Diferencia entre CBO y ABO y cuándo usar cada uno','CBO vs ABO'],['¿Cómo armo una campaña Performance Max en Google Ads?','Performance Max'],['¿Qué métricas miro primero en una campaña nueva de Meta Ads?','Métricas clave']],
+    ctx:`Modo consultor general. Respondé como especialista senior en Meta Ads y Google Ads.`
+  }
+];
+
+let state = (() => { try { const s = localStorage.getItem(SK); return s ? JSON.parse(s) : { clients: DC, histories: {} }; } catch(e) { return { clients: DC, histories: {} }; } })();
+let cid = state.clients[0].id;
+
+function save() { try { localStorage.setItem(SK, JSON.stringify(state)); } catch(e) {} }
+function getH(id) { return state.histories[id] || []; }
+function setH(id, h) { state.histories[id] = h; save(); }
+
+function login() {
+  if (document.getElementById('pw').value === PW) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    initApp();
+  } else {
+    const e = document.getElementById('login-err');
+    e.classList.add('show'); setTimeout(() => e.classList.remove('show'), 2000);
+  }
+function logout() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('pw').value = '';
+}
+
+}
+
+function initApp() { renderTabs(); switchClient(cid); }
+
+function renderTabs() {
+  const el = document.getElementById('tabs');
+  el.innerHTML = '';
+  state.clients.forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'tab' + (c.id === cid ? ' active' : '');
+    b.innerHTML = `<span class="tab-dot"></span>${c.name}`;
+    b.onclick = () => switchClient(c.id);
+    el.appendChild(b);
+  });
+}
+
+function switchClient(id) {
+  cid = id;
+  renderTabs();
+  const c = state.clients.find(x => x.id === id);
+  document.getElementById('hdr-name').textContent = c.name;
+  document.getElementById('hdr-tag').textContent = '// ' + c.desc;
+  renderShortcuts(c);
+  renderMessages(id);
+}
+
+function renderShortcuts(c) {
+  const el = document.getElementById('shortcuts');
+  el.innerHTML = '';
+  c.shortcuts.forEach(([p, l]) => {
+    const d = document.createElement('div');
+    d.className = 'shortcut'; d.textContent = l;
+    d.onclick = () => { document.getElementById('chat-input').value = p; send(); };
+    el.appendChild(d);
+  });
+}
+
+function renderMessages(id) {
+  const el = document.getElementById('messages');
+  el.innerHTML = '';
+  const h = getH(id);
+  if (h.length === 0) showWelcome();
+  else h.forEach(m => addBubble(m.role === 'user' ? 'user' : 'agent', m.content, false));
+}
+
+function showWelcome() {
+  const c = state.clients.find(x => x.id === cid);
+  const msgs = {
+    rondo: 'Contexto Rondó cargado. Lanzamiento 14 de mayo, B2C por Instagram/WhatsApp y B2B con clubes.\n\n¿Arrancamos con la campaña de lanzamiento o necesitás algo específico?',
+    vlan: 'Contexto Vlan cargado. Foco en B2B: concesionarias, inmobiliarias, empresas. +150 unidades vendidas, modelo validado.\n\n¿Campaña B2B, copies o estrategia de leads?',
+    general: 'Modo general activo. Meta Ads, Google Ads, estrategia, copies.\n\n¿Qué necesitás?'
+  };
+  const text = msgs[c.id] || `Contexto de ${c.name} cargado. ¿Por dónde arrancamos?`;
+  addBubble('agent', text, false);
+  const h = getH(cid); h.push({ role: 'assistant', content: text }); setH(cid, h);
+}
+
+function md(text) {
+  let h = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  h = h.replace(/\|(.+)\|\n\|[-| :]+\|\n((?:\|.+\|\n?)+)/g, (_, hdr, rows) => {
+    const ths = hdr.split('|').filter(x=>x.trim()).map(t=>`<th>${t.trim()}</th>`).join('');
+    const trs = rows.trim().split('\n').map(r => `<tr>${r.split('|').filter(x=>x.trim()).map(d=>`<td>${d.trim()}</td>`).join('')}</tr>`).join('');
+    return `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
+  });
+  h = h.replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>');
+  h = h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  h = h.replace(/^---$/gm,'<hr>');
+  h = h.replace(/^&gt; (.+)$/gm,'<blockquote>$1</blockquote>');
+  h = h.replace(/`([^`]+)`/g,'<code>$1</code>');
+  h = h.replace(/^\d+\. (.+)$/gm,'<li data-ol>$1</li>').replace(/^[-*] (.+)$/gm,'<li>$1</li>');
+  h = h.replace(/(<li[^>]*>.*<\/li>\n?)+/gs, m => `<ul>${m}</ul>`);
+  h = h.split('\n').map(line => {
+    if (line.match(/^<(h[123]|ul|table|blockquote|hr)/)) return line;
+    if (line.trim() === '') return '';
+    return `<p>${line}</p>`;
+  }).join('\n');
+  return h.replace(/<p><\/p>/g,'').replace(/<p>\s*<\/p>/g,'');
+}
+
+function addBubble(role, text, animate = true) {
+  const el = document.getElementById('messages');
+  const c = state.clients.find(x => x.id === cid);
+  const now = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  if (!animate) div.style.animation = 'none';
+  const meta = document.createElement('div');
+  meta.className = 'msg-meta';
+  meta.innerHTML = `<span>${role==='user'?'Francisco':'Agente — '+c.name}</span><span>${now}</span>`;
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  if (role === 'user') bubble.textContent = text;
+  else bubble.innerHTML = md(text);
+  div.appendChild(meta); div.appendChild(bubble);
+  if (role === 'agent') {
+    const btn = document.createElement('button');
+    btn.className = 'msg-export'; btn.textContent = '↓ exportar respuesta';
+    btn.onclick = () => expText(text); div.appendChild(btn);
+  }
+  el.appendChild(div); el.scrollTop = el.scrollHeight;
+}
+
+function showTyping() {
+  const el = document.getElementById('messages');
+  const div = document.createElement('div'); div.id = 'typing'; div.className = 'typing-wrap';
+  div.innerHTML = `<div class="typing-bubble"><div class="td"></div><div class="td"></div><div class="td"></div></div>`;
+  el.appendChild(div); el.scrollTop = el.scrollHeight;
+}
+function removeTyping() { document.getElementById('typing')?.remove(); }
+
+async function send() {
+  const input = document.getElementById('chat-input');
+  const btn = document.getElementById('send-btn');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = ''; input.style.height = 'auto'; btn.disabled = true;
+  const h = getH(cid); h.push({ role:'user', content:text }); setH(cid, h);
+  addBubble('user', text); showTyping();
+  const c = state.clients.find(x => x.id === cid);
+  const sys = BASE_SYS + '\n\n--- CLIENTE ACTIVO ---\n' + c.ctx;
+  const apiMsgs = h.filter((m,i) => !(i===0 && m.role==='assistant'));
+  try {
+    const res = await fetch('https://agente-marketing-2.onrender.com/api/chat', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:2000, system:sys, messages:apiMsgs })
+    });
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || (data.error ? '**Error:** '+data.error.message : 'Sin respuesta.');
+    removeTyping(); addBubble('agent', reply);
+    h.push({ role:'assistant', content:reply }); setH(cid, h);
+  } catch(e) {
+    removeTyping(); addBubble('agent','**Error de conexión.** Verificá tu API key o la conexión.');
+  }
+  btn.disabled = false; input.focus();
+}
+
+function handleKey(e) { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); send(); } }
+function resize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,160)+'px'; }
+
+function clearChat() {
+  if (!confirm('¿Limpiás el chat de este cliente?')) return;
+  setH(cid, []); document.getElementById('messages').innerHTML = ''; showWelcome();
+}
+
+function expText(text) {
+  const clean = text.replace(/\*\*/g,'').replace(/^## /gm,'').replace(/^# /gm,'');
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([clean],{type:'text/plain'})), download:'respuesta-agente.txt' });
+  a.click();
+}
+
+function exportAll() {
+  const c = state.clients.find(x=>x.id===cid), h = getH(cid);
+  if (!h.length) { alert('No hay conversación para exportar.'); return; }
+  let out = `AGENTE PAID MEDIA — ${c.name.toUpperCase()}\nExportado: ${new Date().toLocaleString('es-AR')}\n${'='.repeat(50)}\n\n`;
+  h.forEach(m => {
+    const who = m.role==='user'?'FRANCISCO':'AGENTE';
+    out += `[${who}]\n${m.content.replace(/\*\*/g,'').replace(/^## /gm,'')}\n\n${'─'.repeat(40)}\n\n`;
+  });
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([out],{type:'text/plain'})), download:`pma-${c.name.toLowerCase()}-${Date.now()}.txt` });
+  a.click();
+}
+
+function openModal() { document.getElementById('modal').classList.add('open'); }
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  ['m-name','m-desc','m-ctx'].forEach(id => document.getElementById(id).value='');
+}
+
+function saveClient() {
+  const name = document.getElementById('m-name').value.trim();
+  const desc = document.getElementById('m-desc').value.trim();
+  const ctx = document.getElementById('m-ctx').value.trim();
+  if (!name||!ctx) { alert('Nombre y contexto son obligatorios.'); return; }
+  const id = 'c_'+Date.now();
+  state.clients.push({ id, name, desc: desc||'Cliente personalizado',
+    shortcuts:[['Analizá el negocio y decime qué campaña haría primero','Primera campaña'],['Armá la segmentación ideal para este negocio en Meta Ads','Segmentación Meta'],['Copies para Instagram que conviertan para este negocio','Copies Instagram'],['¿Meta Ads, Google Ads o ambos? Dame tu criterio.','Plataforma ideal']],
+    ctx });
+  save(); closeModal(); renderTabs(); switchClient(id);
+}
+</script>
+</body>
+</html>
